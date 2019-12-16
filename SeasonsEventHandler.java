@@ -7,6 +7,7 @@ import java.util.Random;
 import cpw.mods.fml.common.ITickHandler;
 import cpw.mods.fml.common.TickType;
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockIce;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.ChatMessageComponent;
 import net.minecraft.util.MathHelper;
@@ -23,12 +24,13 @@ public class SeasonsEventHandler implements ITickHandler {
 
     private final int TICKS = 20;
     private final int CHECK_INTERVAL = 10; // in seconds
+    private final int DAY_LENGHT = 24000; // in ticks
     private final String LABEL = "SeasonsEventHandler";
 
-    private final int CHUNK_SIZE = 16;
-
     private final int AIR = 0;
+    private final int WATER = 8;
     private final int SNOW_LAYER = 78;
+    private final int ICE = 79;
 
     private static EntityPlayer player;
 
@@ -61,9 +63,10 @@ public class SeasonsEventHandler implements ITickHandler {
         String output = "sec " + (m_tickCounter / TICKS) + ":";
         printChat(output);
 
-        // check factors, which can affect to mood
-//        checkTemperature();
+        // check parameters
+        checkTime();
         checkSeason();
+        checkTemperature();
 
         m_allowCheck = false;
     }
@@ -76,6 +79,8 @@ public class SeasonsEventHandler implements ITickHandler {
             return;
 
 //        System.out.println("# biome event");
+
+//        if (player == null) return;
 
         m_allowCheckBiome = false;
     }
@@ -94,7 +99,7 @@ public class SeasonsEventHandler implements ITickHandler {
 
     // Test - check temperature
     public void checkTemperature() {
-//        String output = "check for temp... ";
+        String output = "Check temp... ";
 
         // current coordinates of player
         final int posX = MathHelper.floor_double(player.posX);
@@ -102,33 +107,20 @@ public class SeasonsEventHandler implements ITickHandler {
 
         BiomeGenBase currentBiome = player.worldObj.getBiomeGenForCoords(posX, posZ);
 
-//        output += currentBiome.temperature;
+        output += currentBiome.temperature;
 
         // output += "\ntemp int: " + currentBiome.getIntTemperature();
         // output += "\ntemp fl : " + currentBiome.getFloatTemperature();
 
 //        System.out.println(output);
-//        print(output);
+        printChat(output);
+    }
 
 
+    void checkTime() {
+        if (player == null) return;
 
-//        GrassColorReloadListener.
-
-
-
-//        if (currentBiome.biomeID == 4) {
-//            System.out.println("We are in the forest, enable snow");
-        System.out.println("# enable snow");
-             currentBiome
-            // .setEnableSnow()
-             .setTemperatureRainfall(0.05F, 0.8F)
-            ;
-//        }
-
-        if (m_allowChangeToSummer) {
-            currentBiome
-            .setTemperatureRainfall(2.0F, 0.0F);
-        }
+        printChat("# WorldTime " + player.worldObj.getWorldTime());
     }
 
 
@@ -142,7 +134,7 @@ public class SeasonsEventHandler implements ITickHandler {
         World world = player.worldObj;
 
         // frequency of random tried to melt snow
-        int trying = 4;
+        int trying = 1;
         if(world.rand.nextInt(trying) != 0) return;
 
         // current coordinates of player
@@ -165,22 +157,26 @@ public class SeasonsEventHandler implements ITickHandler {
 //        w.theChunkProviderServer;
 //        world.chunk
 
-        // manual search
-        int xChunkStart = chunk.xPosition * CHUNK_SIZE;
-        int zChunkStart = chunk.zPosition * CHUNK_SIZE;
-        int xChunkEnd = chunk.xPosition * CHUNK_SIZE + CHUNK_SIZE;
-        int zChunkEnd = chunk.zPosition * CHUNK_SIZE + CHUNK_SIZE;
+        // test - manual search
+//        int xChunkStart = chunk.xPosition * CHUNK_SIZE;
+//        int zChunkStart = chunk.zPosition * CHUNK_SIZE;
+//        int xChunkEnd = chunk.xPosition * CHUNK_SIZE + CHUNK_SIZE;
+//        int zChunkEnd = chunk.zPosition * CHUNK_SIZE + CHUNK_SIZE;
 
-        System.out.println("# chunk x start: " + xChunkStart + ", chunk z start: " + zChunkStart);
-        System.out.println("# chunk x end  : " + xChunkEnd + ", chunk z end  : " + zChunkEnd);
+//        System.out.println("# chunk x start: " + xChunkStart + ", chunk z start: " + zChunkStart);
+//        System.out.println("# chunk x end  : " + xChunkEnd + ", chunk z end  : " + zChunkEnd);
 
-//        for (int x = xChunkStart; x < xChunkEnd; ++x) {
-//            for (int z = zChunkStart; z < zChunkEnd; ++z) {
+        // search chunks for melting snow in active player radius
+        final int beginAreaX = (chunk.xPosition - SeasonsManager.ACTIVE_RADIUS) * SeasonsManager.CHUNK_SIZE;
+        final int beginAreaZ = (chunk.zPosition - SeasonsManager.ACTIVE_RADIUS) * SeasonsManager.CHUNK_SIZE;
+        final int endAreaX = (chunk.xPosition + SeasonsManager.ACTIVE_RADIUS) * SeasonsManager.CHUNK_SIZE;
+        final int endAreaZ = (chunk.zPosition + SeasonsManager.ACTIVE_RADIUS) * SeasonsManager.CHUNK_SIZE;
 
-                int x = xChunkStart;
-                int z = zChunkStart;
 
-                // this is a kind of magic
+        for (int x = beginAreaX; x < endAreaX; x += SeasonsManager.CHUNK_SIZE) {
+            for (int z = beginAreaZ; z < endAreaZ; z += SeasonsManager.CHUNK_SIZE) {
+
+                // get random XZ-offset for melting in chunk
                 int updateLCG = (new Random()).nextInt() * 3 + 1013904223;
                 int randOffset = updateLCG >> 2;
 
@@ -189,16 +185,16 @@ public class SeasonsEventHandler implements ITickHandler {
         
 //                System.out.println("magic x: " + (x + (randOffset & 15))
 //                        + ", z: " + (z + (randOffset >> 8 & 15)));
-                System.out.println("magic x: " + x + ", z: " + z);
+//                System.out.println("magic x: " + x + ", z: " + z);
 
                 int precH = world.getPrecipitationHeight(x, z);
 //                int precH = world.getPrecipitationHeight(x + (randOffset & 15), z + (randOffset >> 8 & 15));
-                System.out.println("precipitation height at: " + x + ", " + z + ": " + precH);
+//                System.out.println("precipitation height at: " + x + ", " + z + ": " + precH);
 
                 // going upside down each column
                 for (int y = precH; y > 0; --y) {
                     int blockID = world.getBlockId(x, y, z);
-                    System.out.println("Block ID at " + y + ": " + blockID);
+                    System.out.println("Block ID at (" + x + ", " + z + ") " + y + ": " + blockID);
 
                     if (blockID == AIR) 
                         continue;
@@ -206,10 +202,16 @@ public class SeasonsEventHandler implements ITickHandler {
                     if (blockID == SNOW_LAYER) {
                         world.setBlockToAir(x, y, z);
                     }
+
+                    if (blockID == ICE)
+                    {
+                        world.setBlock(x, y, z, WATER);
+                    }
+
                     break;
                 }
-//            }
-//        }
+            }
+        }
     }
     // - --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
 
