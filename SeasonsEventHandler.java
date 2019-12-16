@@ -1,6 +1,7 @@
 package myseasons;
 
 import java.util.EnumSet;
+import java.util.Iterator;
 import java.util.Random;
 
 import cpw.mods.fml.common.ITickHandler;
@@ -10,6 +11,7 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.ChatMessageComponent;
 import net.minecraft.util.MathHelper;
 import net.minecraft.world.World;
+import net.minecraft.world.WorldServer;
 import net.minecraft.world.biome.BiomeGenBase;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.event.ForgeSubscribe;
@@ -28,7 +30,7 @@ public class SeasonsEventHandler implements ITickHandler {
     private final int AIR = 0;
     private final int SNOW_LAYER = 78;
 
-    private EntityPlayer player;
+    private static EntityPlayer player;
 
     private int m_tickCounter = 0;
     private boolean m_allowCheck = false;
@@ -36,8 +38,8 @@ public class SeasonsEventHandler implements ITickHandler {
     private boolean m_allowChangeToSummer = false;
     private boolean m_isRemote = false;
 
-    // Main parameter
-    private double m_mood = 100.0F;
+    SeasonsManager seasonsManager = new SeasonsManager();
+
 
     // - --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
     // Functions
@@ -57,10 +59,11 @@ public class SeasonsEventHandler implements ITickHandler {
         this.m_isRemote = player.worldObj.isRemote;
 
         String output = "sec " + (m_tickCounter / TICKS) + ":";
-        print(output);
+        printChat(output);
 
         // check factors, which can affect to mood
-        checkTemperature();
+//        checkTemperature();
+        checkSeason();
 
         m_allowCheck = false;
     }
@@ -72,9 +75,20 @@ public class SeasonsEventHandler implements ITickHandler {
         if (!m_allowCheckBiome)
             return;
 
-        System.out.println("# biome event");
+//        System.out.println("# biome event");
 
         m_allowCheckBiome = false;
+    }
+
+
+    // Test - check season
+    public void checkSeason() {
+        if (m_allowChangeToSummer) {
+            seasonsManager.setSeason(seasonsManager.SUMMER, player);
+        }
+        else {
+            seasonsManager.setSeason(seasonsManager.WINTER, player);
+        }
     }
 
 
@@ -145,6 +159,11 @@ public class SeasonsEventHandler implements ITickHandler {
         // the temperature is good, let's melt snow
         System.out.println(output + " the temperature is good, let's melt snow");
         Chunk chunk = world.getChunkFromBlockCoords(posX, posZ);
+
+//        Iterator<Chunk> iter = world.getPersistentChunks();
+//        WorldServer w;
+//        w.theChunkProviderServer;
+//        world.chunk
 
         // manual search
         int xChunkStart = chunk.xPosition * CHUNK_SIZE;
@@ -242,7 +261,7 @@ public class SeasonsEventHandler implements ITickHandler {
     // - --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
 
     // Output to chat
-    void print(String text) {
+    static void printChat(String text) {
         player.sendChatToPlayer(new ChatMessageComponent().addText(text));
     }
     // - --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---

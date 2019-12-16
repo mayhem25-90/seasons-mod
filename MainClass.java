@@ -14,32 +14,32 @@ import net.minecraftforge.common.MinecraftForge;
 
 public class MainClass {
 
-	public static final String MODID = "myseasonsmod";
-	public static final String MODNAME = "Mayhem Seasons Mod";
-	public static final String MODVERSION = "0.0.1";
+    public static final String MODID = "myseasons";
+    public static final String MODNAME = "Mayhem Seasons Mod";
+    public static final String MODVERSION = "0.0.1";
 
-	SeasonsEventHandler evtHandler;
+    SeasonsEventHandler evtHandler;
 
-	// - --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
-	// Standard initial functions
-	// - --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
-	@EventHandler
-	public void preInit(FMLPreInitializationEvent event) {
-	}
+    // - --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+    // Standard initial functions
+    // - --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+    @EventHandler
+    public void preInit(FMLPreInitializationEvent event) {
+    }
 
-	@EventHandler
-	public void Init(FMLPreInitializationEvent event) {
-	}
+    @EventHandler
+    public void Init(FMLPreInitializationEvent event) {
+    }
 
-	@EventHandler
-	public void postInit(FMLPreInitializationEvent event) {
-	}
+    @EventHandler
+    public void postInit(FMLPreInitializationEvent event) {
+    }
 
-	@EventHandler
-	public void load(FMLInitializationEvent event) {
-		evtHandler = new SeasonsEventHandler();
+    @EventHandler
+    public void load(FMLInitializationEvent event) {
+        evtHandler = new SeasonsEventHandler();
 
-		TickRegistry.registerTickHandler(evtHandler, Side.SERVER);
-		MinecraftForge.EVENT_BUS.register(evtHandler);
-	}
+        TickRegistry.registerTickHandler(evtHandler, Side.SERVER);
+        MinecraftForge.EVENT_BUS.register(evtHandler);
+    }
 }
