@@ -1,6 +1,7 @@
 package myseasons;
 
 import java.io.IOException;
+import java.util.Random;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.TextureUtil;
@@ -24,23 +25,31 @@ public class SeasonsManager {
     public static final int SUMMER = 2;
     public static final int AUTUMN = 3;
 
-    String[] seasonSuffix = {"winter", "spring", "summer", "autumn"};
+    static final int SEASONS = 4;
+    static final String[] seasonSuffix = {"winter", "spring", "summer", "autumn"};
 
     int currentSeason = SUMMER;
 
+    private final int AIR = 0;
+    private final int WATER = 8;
+    private final int SNOW_LAYER = 78;
+    private final int ICE = 79;
+
 
     public void setSeason(final int season, EntityPlayer player) {
-        System.out.println("### Set " + seasonSuffix[season] + " ###");
-        SeasonsEventHandler.printChat("### Set " + seasonSuffix[season] + " ###");
 
-        currentSeason = season;
-        setGrassFoliageColor();
+        if (currentSeason != season) {
+            SeasonsEventHandler.printChat("### Set " + seasonSuffix[season] + " ###");
+            currentSeason = season;
+            setGrassFoliageColor();
+        }
 
         switch (season) {
         case WINTER:
             setBiomesTemperature(player, 0.05F);
             break;
 
+        case SPRING:
         case SUMMER:
             setBiomesTemperature(player, 0.7F);
             break;
@@ -51,7 +60,9 @@ public class SeasonsManager {
     }
 
 
-    public void setBiomesTemperature(EntityPlayer player, float temp) {
+    public void setBiomesTemperature(EntityPlayer player, float temperature) {
+
+//        SeasonsEventHandler.printChat("set temperature " + temperature);
 
         // Current coordinates of player
         final int posX = MathHelper.floor_double(player.posX);
@@ -70,15 +81,14 @@ public class SeasonsManager {
         for (int x = beginAreaX; x < endAreaX; x += CHUNK_SIZE) {
             for (int z = beginAreaZ; x < endAreaZ; x += CHUNK_SIZE) {
                 BiomeGenBase currentBiome = world.getBiomeGenForCoords(x, z);
-                currentBiome.setTemperatureRainfall(temp, currentBiome.getFloatRainfall());
+                currentBiome.setTemperatureRainfall(temperature, currentBiome.getFloatRainfall());
             }
         }
     }
 
 
     void setGrassFoliageColor() {
-//        final ResourceLocation field_130078_a = new ResourceLocation("textures/colormap/grass.png");
-//        final ResourceLocation field_130079_a = new ResourceLocation("textures/colormap/foliage.png");
+
         final ResourceLocation grassColormap = new ResourceLocation(
                 MainClass.MODID + ":textures/colormap/grass_" + seasonSuffix[currentSeason] + ".png");
         final ResourceLocation foliageColormap = new ResourceLocation(
@@ -92,8 +102,83 @@ public class SeasonsManager {
         }
         catch (IOException ioexception)
         {
-            System.out.println("### error setGrassBiomeColorizer" + ioexception);
+            System.out.println("### error setGrassBiomeColorizer " + ioexception);
             ioexception.printStackTrace();
+        }
+    }
+
+
+    // randomly melt ice and snow when it isn't winter
+    void meltingSnow(EntityPlayer player) {
+        if (player == null) return;
+
+        String output = "melting snow?... ";
+
+        // Get world
+        World world = player.worldObj;
+
+        // frequency of random tried to melt snow
+        int trying = 1;
+        if(world.rand.nextInt(trying) != 0) return;
+
+        // current coordinates of player
+        final int posX = MathHelper.floor_double(player.posX);
+        final int posZ = MathHelper.floor_double(player.posZ);
+
+        BiomeGenBase currentBiome = world.getBiomeGenForCoords(posX, posZ);
+        output += "temp: " + currentBiome.getFloatTemperature();
+        if (currentBiome.getFloatTemperature() < 0.15F) {
+            System.out.println(output + " => return");
+            return;
+        }
+
+        // TODO: this is a bug: we need to check temperature in each XZ
+        // the temperature is good, let's melt snow
+        System.out.println(output + " the temperature is good, let's melt snow");
+        Chunk chunk = world.getChunkFromBlockCoords(posX, posZ);
+
+
+        // search chunks for melting snow in active player radius
+        final int beginAreaX = (chunk.xPosition - ACTIVE_RADIUS) * CHUNK_SIZE;
+        final int beginAreaZ = (chunk.zPosition - ACTIVE_RADIUS) * CHUNK_SIZE;
+        final int endAreaX = (chunk.xPosition + ACTIVE_RADIUS) * CHUNK_SIZE;
+        final int endAreaZ = (chunk.zPosition + ACTIVE_RADIUS) * CHUNK_SIZE;
+
+        for (int x = beginAreaX; x < endAreaX; x += CHUNK_SIZE) {
+            for (int z = beginAreaZ; z < endAreaZ; z += CHUNK_SIZE) {
+
+                // get random XZ-offset for melting in chunk
+                int updateLCG = (new Random()).nextInt() * 3 + 1013904223;
+                int randOffset = updateLCG >> 2;
+
+                x += (randOffset & 15);
+                z += (randOffset >> 8 & 15);
+
+//                System.out.println("magic x: " + x + ", z: " + z);
+
+                int precH = world.getPrecipitationHeight(x, z);
+//                System.out.println("precipitation height at: " + x + ", " + z + ": " + precH);
+
+                // going upside down each column
+                for (int y = precH; y > 0; --y) {
+                    int blockID = world.getBlockId(x, y, z);
+                    System.out.println("Block ID at (" + x + ", " + z + ") " + y + ": " + blockID);
+
+                    if (blockID == AIR)
+                        continue;
+
+                    if (blockID == SNOW_LAYER) {
+                        world.setBlockToAir(x, y, z);
+                    }
+
+                    if (blockID == ICE)
+                    {
+                        world.setBlock(x, y, z, WATER);
+                    }
+
+                    break;
+                }
+            }
         }
     }
 }
