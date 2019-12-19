@@ -15,6 +15,7 @@ import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 import net.minecraft.world.biome.BiomeGenBase;
 import net.minecraft.world.chunk.Chunk;
+import net.minecraftforge.common.DimensionManager;
 import net.minecraftforge.event.ForgeSubscribe;
 import net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent;
 import net.minecraftforge.event.terraingen.BiomeEvent;
@@ -26,16 +27,14 @@ public class SeasonsEventHandler implements ITickHandler {
     private final int TICKS = 20;
     private final int CHECK_INTERVAL = 10; // in seconds
     private final int DAY_LENGTH = 24000; // in ticks
-    private final String LABEL = "SeasonsEventHandler";
 
     private static EntityPlayer player;
 
     private int m_tickCounter = 0;
-    private boolean m_allowCheck = false;
-    private boolean m_allowCheckWorld = false;
-    private boolean m_isRemote = false;
 
-    SeasonsManager seasonsManager = new SeasonsManager();
+    private boolean m_allowCheck = false;
+
+    private SeasonsManager seasonsManager = new SeasonsManager();
 
 
     // - --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
@@ -53,48 +52,22 @@ public class SeasonsEventHandler implements ITickHandler {
             return;
 
         player = (EntityPlayer) event.entity;
-        this.m_isRemote = player.worldObj.isRemote;
+        seasonsManager.setPlayer(player);
 
         String output = "sec " + (m_tickCounter / TICKS) + ":";
         printChat(output);
 
         // check parameters
         checkTime();
-        checkSeason();
         checkTemperature();
 
         m_allowCheck = false;
     }
 
 
-    // Test
-    @ForgeSubscribe
-    public void onWorldEvent(WorldEvent event) {
-        if (!m_allowCheckWorld)
-            return;
-
-        System.out.println("# world event");
-
-//        if (player == null) return;
-        World world = event.world;
-
-        m_allowCheckWorld = false;
-    }
-
-
-    // Test - check season
-    public void checkSeason() {/*
-        if (m_allowChangeToSummer) {
-            seasonsManager.setSeason(seasonsManager.SUMMER, player);
-        }
-        else {
-            seasonsManager.setSeason(seasonsManager.WINTER, player);
-        }*/
-    }
-
-
     // Test - check temperature
     public void checkTemperature() {
+
         String output = "Check temp... ";
 
         // current coordinates of player
@@ -119,47 +92,36 @@ public class SeasonsEventHandler implements ITickHandler {
         // Get world
         World world = player.worldObj;
 
+//        if (worldServer == null) return;
+
+//        WorldServer world = worldServer;
+
         // Get number of day
         int dayNumber = (int) (world.getWorldTime() / DAY_LENGTH);
 
         // Current config: 1 day = 1 season
         int season = (dayNumber % SeasonsManager.SEASONS);
-        seasonsManager.setSeason(season, player);
+        seasonsManager.setSeason(season);
 
-        printChat("# WorldTime " + world.getWorldTime() + "; day " + dayNumber + "; season " + season);
+        printChat("# WorldTime " + world.getWorldTime() + "; day " + dayNumber + "; season " + season + " ("
+                + SeasonsManager.seasonSuffix[season] + ")");
     }
 
-
-
     // - --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+
 
     // - --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
     // ITickHandler
     // - --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
     @Override
     public void tickStart(EnumSet<TickType> type, Object... tickData) {
-//        m_tickCounter++;
-
-        // every second
-        if (m_tickCounter % (TICKS) == 0) {
-//            m_allowCheckWorld = true;
-        }
-
-        // every 10 seconds
-        if (m_tickCounter % (CHECK_INTERVAL * TICKS) == 0) {
-            m_allowCheck = true;
-            m_allowCheckWorld = true;
-        }
-
-        m_tickCounter++;
     }
 
     @Override
     public void tickEnd(EnumSet<TickType> type, Object... tickData) {
-        // every second
-//        if (m_tickCounter % (TICKS) != 0) return;
-
-        seasonsManager.meltingSnow(player);
+//        if (type.equals(EnumSet.of(TickType.SERVER))) {
+            onTick();
+//        }
     }
 
     @Override
@@ -169,7 +131,7 @@ public class SeasonsEventHandler implements ITickHandler {
 
     @Override
     public String getLabel() {
-        return LABEL;
+        return "";
     }
     // - --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
 
@@ -180,6 +142,26 @@ public class SeasonsEventHandler implements ITickHandler {
     // Output to chat
     static void printChat(String text) {
         player.sendChatToPlayer(new ChatMessageComponent().addText(text));
+    }
+
+
+    void onTick() {
+        WorldServer world = DimensionManager.getWorld(0);
+
+        if (world != null) {
+            seasonsManager.setWorld(world);
+//            seasonsManager.meltingSnowBase();
+        }
+
+        m_tickCounter++;
+
+        // every second
+//      if (m_tickCounter % (TICKS) != 0) return;
+
+        // every 10 seconds
+        if (m_tickCounter % (CHECK_INTERVAL * TICKS) == 0) {
+            m_allowCheck = true;
+        }
     }
     // - --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
 }

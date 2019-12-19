@@ -1,6 +1,8 @@
 package myseasons;
 
+import java.awt.List;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Random;
 
 import net.minecraft.client.Minecraft;
@@ -12,47 +14,77 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.ColorizerFoliage;
 import net.minecraft.world.ColorizerGrass;
 import net.minecraft.world.World;
+import net.minecraft.world.WorldServer;
 import net.minecraft.world.biome.BiomeGenBase;
 import net.minecraft.world.chunk.Chunk;
 
 public class SeasonsManager {
 
-    public static final int CHUNK_SIZE = 16;
-    public static final int ACTIVE_RADIUS = 8;
+    private static final int CHUNK_SIZE = 16;
+    private static final int ACTIVE_RADIUS = 8;
 
-    public static final int WINTER = 0;
-    public static final int SPRING = 1;
-    public static final int SUMMER = 2;
-    public static final int AUTUMN = 3;
+    private static final int AIR = 0;
+    private static final int WATER = 8;
+    private static final int SNOW_LAYER = 78;
+    private static final int ICE = 79;
+
+    private static final int WINTER = 0;
+    private static final int SPRING = 1;
+    private static final int SUMMER = 2;
+    private static final int AUTUMN = 3;
 
     static final int SEASONS = 4;
     static final String[] seasonSuffix = {"winter", "spring", "summer", "autumn"};
 
     int currentSeason = SUMMER;
 
-    private final int AIR = 0;
-    private final int WATER = 8;
-    private final int SNOW_LAYER = 78;
-    private final int ICE = 79;
+    WorldServer world;
+    EntityPlayer player;
 
 
-    public void setSeason(final int season, EntityPlayer player) {
+    public void setWorld(WorldServer world) {
+        this.world = world;
+    }
+
+
+    public void setPlayer(EntityPlayer player) {
+        this.player = player;
+    }
+
+
+    public void setSeason(final int season) {
 
         if (currentSeason != season) {
             SeasonsEventHandler.printChat("### Set " + seasonSuffix[season] + " ###");
             currentSeason = season;
-            setGrassFoliageColor();
+//            setGrassFoliageColor();
         }
+
+        if (world == null) return;
 
         switch (season) {
         case WINTER:
-            setBiomesTemperature(player, 0.05F);
+            for (EntityPlayer pl : (ArrayList<EntityPlayer>) world.playerEntities) {
+                setBiomesTemperature(player, 0.0F, 0.5F);
+            }
             break;
 
         case SPRING:
-        case SUMMER:
-            setBiomesTemperature(player, 0.7F);
+            for (EntityPlayer pl : (ArrayList<EntityPlayer>) world.playerEntities) {
+                setBiomesTemperature(player, 0.35F, 0.5F);
+            }
             break;
+
+        case SUMMER:
+            for (EntityPlayer pl : (ArrayList<EntityPlayer>) world.playerEntities) {
+                setBiomesTemperature(player, 0.7F, 0.5F);
+            }
+            break;
+
+        case AUTUMN:
+            for (EntityPlayer pl : (ArrayList<EntityPlayer>) world.playerEntities) {
+                setBiomesTemperature(player, 2.0F, 0.5F);
+            }
 
         default:
             break;
@@ -60,17 +92,17 @@ public class SeasonsManager {
     }
 
 
-    public void setBiomesTemperature(EntityPlayer player, float temperature) {
+    void setBiomesTemperature(EntityPlayer player, float temperature, float rainfall) {
 
-//        SeasonsEventHandler.printChat("set temperature " + temperature);
+        SeasonsEventHandler.printChat("set temperature " + temperature);
+//        System.out.println("### set temperature " + temperature);
 
         // Current coordinates of player
         final int posX = MathHelper.floor_double(player.posX);
         final int posZ = MathHelper.floor_double(player.posZ);
 
         // Get active area
-        World world = player.worldObj;
-        Chunk chunk = world.getChunkFromBlockCoords(posX, posZ);
+        Chunk chunk = player.worldObj.getChunkFromBlockCoords(posX, posZ);
 
         final int beginAreaX = (chunk.xPosition - ACTIVE_RADIUS) * CHUNK_SIZE;
         final int beginAreaZ = (chunk.zPosition - ACTIVE_RADIUS) * CHUNK_SIZE;
@@ -80,8 +112,9 @@ public class SeasonsManager {
         // Iteration on X, Z with step 16 for set temperature in biomes
         for (int x = beginAreaX; x < endAreaX; x += CHUNK_SIZE) {
             for (int z = beginAreaZ; x < endAreaZ; x += CHUNK_SIZE) {
-                BiomeGenBase currentBiome = world.getBiomeGenForCoords(x, z);
+                BiomeGenBase currentBiome = player.worldObj.getBiomeGenForCoords(x, z);
                 currentBiome.setTemperatureRainfall(temperature, currentBiome.getFloatRainfall());
+//                currentBiome.setTemperatureRainfall(temperature, rainfall);
             }
         }
     }
@@ -108,9 +141,20 @@ public class SeasonsManager {
     }
 
 
+    void meltingSnowBase() {
+        if (world == null) return;
+
+        for (EntityPlayer pl : (ArrayList<EntityPlayer>) world.playerEntities) {
+            meltingSnow(pl);
+        }
+    }
+
+
     // randomly melt ice and snow when it isn't winter
     void meltingSnow(EntityPlayer player) {
         if (player == null) return;
+
+//        if (world == null) return;
 
         String output = "melting snow?... ";
 
