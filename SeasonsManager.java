@@ -23,23 +23,28 @@ public class SeasonsManager {
     private static final int CHUNK_SIZE = 16;
     private static final int ACTIVE_RADIUS = 8;
 
+    // Block IDs
     private static final int AIR = 0;
     private static final int WATER = 8;
     private static final int SNOW_LAYER = 78;
     private static final int ICE = 79;
 
+    // Seasons
     private static final int WINTER = 0;
     private static final int SPRING = 1;
     private static final int SUMMER = 2;
     private static final int AUTUMN = 3;
 
+    // Biomes
+    private static final int TAIGA = 5;
+    private static final int ICE_PLAINS = 12;
+
     static final int SEASONS = 4;
     static final String[] seasonSuffix = {"winter", "spring", "summer", "autumn"};
 
-    int currentSeason = SUMMER;
+    int currentSeason = -1;
 
     WorldServer world;
-    EntityPlayer player;
 
 
     public void setWorld(WorldServer world) {
@@ -47,55 +52,41 @@ public class SeasonsManager {
     }
 
 
-    public void setPlayer(EntityPlayer player) {
-        this.player = player;
-    }
-
-
     public void setSeason(final int season) {
 
-        if (currentSeason != season) {
-            SeasonsEventHandler.printChat("### Set " + seasonSuffix[season] + " ###");
-            currentSeason = season;
-//            setGrassFoliageColor();
-        }
+        if ((world == null) || (currentSeason == season)) return;
 
-        if (world == null) return;
+        currentSeason = season;
+        setGrassFoliageColor();
 
-        switch (season) {
-        case WINTER:
-            for (EntityPlayer pl : (ArrayList<EntityPlayer>) world.playerEntities) {
-                setBiomesTemperature(player, 0.0F, 0.5F);
+        for (EntityPlayer pl : (ArrayList<EntityPlayer>) world.playerEntities) {
+            PlayerInterface.printChat(pl, "### Now is " + seasonSuffix[season] + " ###");
+
+            switch (season) {
+            case WINTER:
+                setBiomesTemperature(pl, 0.2F, 0.5F);
+                break;
+
+            case SPRING:
+                setBiomesTemperature(pl, 0.8F, 0.5F);
+                break;
+
+            case SUMMER:
+                setBiomesTemperature(pl, 0.5F, 0.5F);
+                break;
+
+            case AUTUMN:
+                setBiomesTemperature(pl, 0.4F, 0.5F);
+                break;
+
+            default:
+                break;
             }
-            break;
-
-        case SPRING:
-            for (EntityPlayer pl : (ArrayList<EntityPlayer>) world.playerEntities) {
-                setBiomesTemperature(player, 0.35F, 0.5F);
-            }
-            break;
-
-        case SUMMER:
-            for (EntityPlayer pl : (ArrayList<EntityPlayer>) world.playerEntities) {
-                setBiomesTemperature(player, 0.7F, 0.5F);
-            }
-            break;
-
-        case AUTUMN:
-            for (EntityPlayer pl : (ArrayList<EntityPlayer>) world.playerEntities) {
-                setBiomesTemperature(player, 2.0F, 0.5F);
-            }
-
-        default:
-            break;
         }
     }
 
 
     void setBiomesTemperature(EntityPlayer player, float temperature, float rainfall) {
-
-        SeasonsEventHandler.printChat("set temperature " + temperature);
-//        System.out.println("### set temperature " + temperature);
 
         // Current coordinates of player
         final int posX = MathHelper.floor_double(player.posX);
@@ -111,12 +102,20 @@ public class SeasonsManager {
 
         // Iteration on X, Z with step 16 for set temperature in biomes
         for (int x = beginAreaX; x < endAreaX; x += CHUNK_SIZE) {
-            for (int z = beginAreaZ; x < endAreaZ; x += CHUNK_SIZE) {
+            for (int z = beginAreaZ; z < endAreaZ; z += CHUNK_SIZE) {
                 BiomeGenBase currentBiome = player.worldObj.getBiomeGenForCoords(x, z);
-                currentBiome.setTemperatureRainfall(temperature, currentBiome.getFloatRainfall());
-//                currentBiome.setTemperatureRainfall(temperature, rainfall);
+//                System.out.println("# set temperature " + temperature);
+                if ((currentBiome.biomeID != TAIGA) && (currentBiome.biomeID != ICE_PLAINS)) {
+                    currentBiome.setTemperatureRainfall(temperature, currentBiome.getFloatRainfall());
+                }
+//              currentBiome.setTemperatureRainfall(temperature, rainfall);
+
+//                System.out.println("Check temp (" + x + ", " + z + ")... " + currentBiome.temperature);
             }
         }
+
+        System.out.println("Check temp (" + posX + ", " + posZ + ")... "
+                + player.worldObj.getBiomeGenForCoords(posX, posZ).temperature);
     }
 
 
