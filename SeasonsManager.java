@@ -54,68 +54,71 @@ public class SeasonsManager {
 
     public void setSeason(final int season) {
 
-        if ((world == null) || (currentSeason == season)) return;
+        if (world == null) return;
 
-        currentSeason = season;
-        setGrassFoliageColor();
+        // Set season if changed
+        if (currentSeason != season) {
 
-        for (EntityPlayer pl : (ArrayList<EntityPlayer>) world.playerEntities) {
-            PlayerInterface.printChat(pl, "### Now is " + seasonSuffix[season] + " ###");
+            // Set season, grass and foliage color...
+            currentSeason = season;
+//            setGrassFoliageColor();
 
-            switch (season) {
-            case WINTER:
-                setBiomesTemperature(pl, 0.2F, 0.5F);
-                break;
-
-            case SPRING:
-                setBiomesTemperature(pl, 0.8F, 0.5F);
-                break;
-
-            case SUMMER:
-                setBiomesTemperature(pl, 0.5F, 0.5F);
-                break;
-
-            case AUTUMN:
-                setBiomesTemperature(pl, 0.4F, 0.5F);
-                break;
-
-            default:
-                break;
+            for (EntityPlayer pl : (ArrayList<EntityPlayer>) world.playerEntities) {
+                PlayerInterface.printChat(pl, "### Now is " + seasonSuffix[season] + " ###");
             }
+        }
+
+        // Always set temperature,
+        // because active area of player can offset by player's moving
+        setBiomesTemperature();
+    }
+
+
+    float getTemperatureBySeason() {
+        switch (currentSeason) {
+            case WINTER: return 0.2F;
+            case SPRING: return 0.8F;
+            case SUMMER: return 0.5F;
+            case AUTUMN: return 0.4F;
+            default: return 0.5F;
         }
     }
 
 
-    void setBiomesTemperature(EntityPlayer player, float temperature, float rainfall) {
+    void setBiomesTemperature() {
 
-        // Current coordinates of player
-        final int posX = MathHelper.floor_double(player.posX);
-        final int posZ = MathHelper.floor_double(player.posZ);
+        // For each player in the world
+        for (EntityPlayer player : (ArrayList<EntityPlayer>) world.playerEntities) {
 
-        // Get active area
-        Chunk chunk = player.worldObj.getChunkFromBlockCoords(posX, posZ);
+            // Current coordinates of player
+            final int posX = MathHelper.floor_double(player.posX);
+            final int posZ = MathHelper.floor_double(player.posZ);
 
-        final int beginAreaX = (chunk.xPosition - ACTIVE_RADIUS) * CHUNK_SIZE;
-        final int beginAreaZ = (chunk.zPosition - ACTIVE_RADIUS) * CHUNK_SIZE;
-        final int endAreaX = (chunk.xPosition + ACTIVE_RADIUS) * CHUNK_SIZE;
-        final int endAreaZ = (chunk.zPosition + ACTIVE_RADIUS) * CHUNK_SIZE;
+            // Get active area
+            Chunk chunk = player.worldObj.getChunkFromBlockCoords(posX, posZ);
 
-        // Iteration on X, Z with step 16 for set temperature in biomes
-        for (int x = beginAreaX; x < endAreaX; x += CHUNK_SIZE) {
-            for (int z = beginAreaZ; z < endAreaZ; z += CHUNK_SIZE) {
-                BiomeGenBase currentBiome = player.worldObj.getBiomeGenForCoords(x, z);
-//                System.out.println("# set temperature " + temperature);
-                if ((currentBiome.biomeID != TAIGA) && (currentBiome.biomeID != ICE_PLAINS)) {
-                    currentBiome.setTemperatureRainfall(temperature, currentBiome.getFloatRainfall());
+            final int beginAreaX = (chunk.xPosition - ACTIVE_RADIUS) * CHUNK_SIZE;
+            final int beginAreaZ = (chunk.zPosition - ACTIVE_RADIUS) * CHUNK_SIZE;
+            final int endAreaX = (chunk.xPosition + ACTIVE_RADIUS) * CHUNK_SIZE;
+            final int endAreaZ = (chunk.zPosition + ACTIVE_RADIUS) * CHUNK_SIZE;
+
+            // Iteration on X, Z with step 16 for set temperature in biomes
+            for (int x = beginAreaX; x < endAreaX; x += CHUNK_SIZE) {
+                for (int z = beginAreaZ; z < endAreaZ; z += CHUNK_SIZE) {
+                    BiomeGenBase currentBiome = player.worldObj.getBiomeGenForCoords(x, z);
+//                    System.out.println("# set temperature " + temperature);
+                    if ((currentBiome.biomeID != TAIGA) && (currentBiome.biomeID != ICE_PLAINS)) {
+                        currentBiome.setTemperatureRainfall(getTemperatureBySeason(), currentBiome.getFloatRainfall());
+                    }
+//                    currentBiome.setTemperatureRainfall(temperature, rainfall);
+
+//                    System.out.println("Check temp (" + x + ", " + z + ")... " + currentBiome.temperature);
                 }
-//              currentBiome.setTemperatureRainfall(temperature, rainfall);
-
-//                System.out.println("Check temp (" + x + ", " + z + ")... " + currentBiome.temperature);
             }
-        }
 
-        System.out.println("Check temp (" + posX + ", " + posZ + ")... "
-                + player.worldObj.getBiomeGenForCoords(posX, posZ).temperature);
+            System.out.println("# check temp in this point (" + posX + ", " + posZ + ")... "
+                    + player.worldObj.getBiomeGenForCoords(posX, posZ).temperature);
+        }
     }
 
 

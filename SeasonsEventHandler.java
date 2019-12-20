@@ -49,12 +49,12 @@ public class SeasonsEventHandler implements ITickHandler {
 //        seasonsManager.meltingSnowBase();
 
         // Every second
-        if (mTickCounter % (TICKS) == 0);
-
-        // Every <CHECK_INTERVAL> seconds
-        if (mTickCounter % (CHECK_INTERVAL * TICKS) == 0) {
+        if (mTickCounter % (TICKS) == 0) {
             checkSeason(world);
         }
+
+        // Every <CHECK_INTERVAL> seconds
+//        if (mTickCounter % (CHECK_INTERVAL * TICKS) == 0);
     }
 
 
@@ -68,10 +68,8 @@ public class SeasonsEventHandler implements ITickHandler {
         System.out.println("# WorldTime " + world.getWorldTime() + "; day " + dayNumber + "; "
                 + "season " + season + " (" + SeasonsManager.seasonSuffix[season] + ")");
 
-        // Set season if changed
-        if (seasonsManager.currentSeason != season) {
-            seasonsManager.setSeason(season);
-        }
+        // Set season
+        seasonsManager.setSeason(season);
     }
 
     // - --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
