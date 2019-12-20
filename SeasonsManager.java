@@ -29,20 +29,27 @@ public class SeasonsManager {
     private static final int SNOW_LAYER = 78;
     private static final int ICE = 79;
 
+    // Biomes
+    private static final int TAIGA = 5;
+    private static final int ICE_PLAINS = 12;
+
     // Seasons
     private static final int WINTER = 0;
     private static final int SPRING = 1;
     private static final int SUMMER = 2;
     private static final int AUTUMN = 3;
 
-    // Biomes
-    private static final int TAIGA = 5;
-    private static final int ICE_PLAINS = 12;
+    private static final int EARLY = 0;
+    private static final int MID = 1;
+    private static final int LATE = 2;
 
-    static final int SEASONS = 4;
-    static final String[] seasonSuffix = {"winter", "spring", "summer", "autumn"};
+    private static final int SEASONS = 4;
+    private static final int SUBSEASONS = 3;
+    private static final String[] seasonSuffix = {"winter", "spring", "summer", "autumn"};
+    private static final String[] subseasonSuffix = {"early", "middle", "late"};
 
     int currentSeason = -1;
+    int currentSubseason = -1;
 
     WorldServer world;
 
@@ -52,24 +59,35 @@ public class SeasonsManager {
     }
 
 
-    public void setSeason(final int season) {
+    public void setSeason(final int dayNumber) {
 
         if (world == null) return;
 
+        // Current config: 3 days = 1 season (1 day = 1 subseason)
+        int month = dayNumber % (SEASONS * SUBSEASONS);
+        int season = month / SUBSEASONS;
+        int subseason = month % SUBSEASONS;
+
+        System.out.println("# WorldTime " + world.getWorldTime() + "; day " + dayNumber);
+        System.out.println("# Season " + season + " (" + seasonSuffix[season] + ")"
+                + " subseason " + subseason + " (" + subseasonSuffix[subseason] + ")");
+
+
         // Set season if changed
-        if (currentSeason != season) {
+        if ((currentSeason != season) || (currentSubseason != subseason)) {
 
             // Set season, grass and foliage color...
             currentSeason = season;
-//            setGrassFoliageColor();
+            currentSubseason = subseason;
+            setGrassFoliageColor();
 
-            for (EntityPlayer pl : (ArrayList<EntityPlayer>) world.playerEntities) {
-                PlayerInterface.printChat(pl, "### Now is " + seasonSuffix[season] + " ###");
+            for (EntityPlayer player : (ArrayList<EntityPlayer>) world.playerEntities) {
+                PlayerInterface.printChat(player,
+                        "### Now is " + subseasonSuffix[subseason] + " " + seasonSuffix[season] + " ###");
             }
         }
 
-        // Always set temperature,
-        // because active area of player can offset by player's moving
+        // Always set temperature, because active area of player can offset by player's moving
         setBiomesTemperature();
     }
 

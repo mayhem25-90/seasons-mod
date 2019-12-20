@@ -63,13 +63,8 @@ public class SeasonsEventHandler implements ITickHandler {
         // Get number of day
         int dayNumber = (int) (world.getWorldTime() / DAY_LENGTH);
 
-        // Current config: 1 day = 1 season
-        int season = (dayNumber % SeasonsManager.SEASONS);
-        System.out.println("# WorldTime " + world.getWorldTime() + "; day " + dayNumber + "; "
-                + "season " + season + " (" + SeasonsManager.seasonSuffix[season] + ")");
-
         // Set season
-        seasonsManager.setSeason(season);
+        seasonsManager.setSeason(dayNumber);
     }
 
     // - --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
