@@ -1,10 +1,11 @@
 package myseasons;
 
-import java.awt.List;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Random;
 
+import cpw.mods.fml.common.FMLCommonHandler;
+import cpw.mods.fml.relauncher.Side;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.TextureUtil;
 import net.minecraft.client.resources.ResourceManager;
@@ -30,6 +31,7 @@ public class SeasonsManager {
     private static final int ICE = 79;
 
     // Biomes
+    private static final int BIOMES = 23;
     private static final int TAIGA = 5;
     private static final int ICE_PLAINS = 12;
 
@@ -68,6 +70,7 @@ public class SeasonsManager {
         int season = month / SUBSEASONS;
         int subseason = month % SUBSEASONS;
 
+        System.out.println();
         System.out.println("# WorldTime " + world.getWorldTime() + "; day " + dayNumber);
         System.out.println("# Season " + season + " (" + seasonSuffix[season] + ")"
                 + " subseason " + subseason + " (" + subseasonSuffix[subseason] + ")");
@@ -76,15 +79,16 @@ public class SeasonsManager {
         // Set season if changed
         if ((currentSeason != season) || (currentSubseason != subseason)) {
 
-            // Set season, grass and foliage color...
+            // Info message about the season to all players
+            for (EntityPlayer player : (ArrayList<EntityPlayer>) world.playerEntities) {
+                PlayerInterface.printChat(player,
+                        ">>> Now is " + subseasonSuffix[subseason] + " " + seasonSuffix[season] + " <<<");
+            }
+
+            // Set season and grass/foliage color...
             currentSeason = season;
             currentSubseason = subseason;
             setGrassFoliageColor();
-
-            for (EntityPlayer player : (ArrayList<EntityPlayer>) world.playerEntities) {
-                PlayerInterface.printChat(player,
-                        "### Now is " + subseasonSuffix[subseason] + " " + seasonSuffix[season] + " ###");
-            }
         }
 
         // Always set temperature, because active area of player can offset by player's moving
@@ -113,7 +117,7 @@ public class SeasonsManager {
             final int posZ = MathHelper.floor_double(player.posZ);
 
             // Get active area
-            Chunk chunk = player.worldObj.getChunkFromBlockCoords(posX, posZ);
+            Chunk chunk = world.getChunkFromBlockCoords(posX, posZ);
 
             final int beginAreaX = (chunk.xPosition - ACTIVE_RADIUS) * CHUNK_SIZE;
             final int beginAreaZ = (chunk.zPosition - ACTIVE_RADIUS) * CHUNK_SIZE;
@@ -123,24 +127,25 @@ public class SeasonsManager {
             // Iteration on X, Z with step 16 for set temperature in biomes
             for (int x = beginAreaX; x < endAreaX; x += CHUNK_SIZE) {
                 for (int z = beginAreaZ; z < endAreaZ; z += CHUNK_SIZE) {
-                    BiomeGenBase currentBiome = player.worldObj.getBiomeGenForCoords(x, z);
-//                    System.out.println("# set temperature " + temperature);
-                    if ((currentBiome.biomeID != TAIGA) && (currentBiome.biomeID != ICE_PLAINS)) {
-                        currentBiome.setTemperatureRainfall(getTemperatureBySeason(), currentBiome.getFloatRainfall());
-                    }
-//                    currentBiome.setTemperatureRainfall(temperature, rainfall);
 
-//                    System.out.println("Check temp (" + x + ", " + z + ")... " + currentBiome.temperature);
+                    // Get current biome and set temperature
+                    BiomeGenBase currentBiome = world.getBiomeGenForCoords(x, z);
+                    if ((currentBiome.biomeID != TAIGA) && (currentBiome.biomeID != ICE_PLAINS)) {
+                        currentBiome.setTemperatureRainfall(getTemperatureBySeason(), currentBiome.rainfall);
+                    }
+
                 }
             }
 
-            System.out.println("# check temp in this point (" + posX + ", " + posZ + ")... "
-                    + player.worldObj.getBiomeGenForCoords(posX, posZ).temperature);
+            System.out.println("# check t in player pos (" + posX + ", " + posZ + "): "
+                    + world.getBiomeGenForCoords(posX, posZ).temperature);
         }
     }
 
 
     void setGrassFoliageColor() {
+
+        if (FMLCommonHandler.instance().getSide() != Side.CLIENT) return;
 
         final ResourceLocation grassColormap = new ResourceLocation(
                 MainClass.MODID + ":textures/colormap/grass_" + seasonSuffix[currentSeason] + ".png");
