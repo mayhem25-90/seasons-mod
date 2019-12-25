@@ -1,15 +1,19 @@
 package myseasons;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Random;
 
 import cpw.mods.fml.common.FMLCommonHandler;
+import cpw.mods.fml.common.network.PacketDispatcher;
 import cpw.mods.fml.relauncher.Side;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.TextureUtil;
 import net.minecraft.client.resources.ResourceManager;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.util.ChatMessageComponent;
 import net.minecraft.util.MathHelper;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.ColorizerFoliage;
@@ -81,8 +85,8 @@ public class SeasonsManager {
 
             // Info message about the season to all players
             for (EntityPlayer player : (ArrayList<EntityPlayer>) world.playerEntities) {
-                PlayerInterface.printChat(player,
-                        ">>> Now is " + subseasonSuffix[subseason] + " " + seasonSuffix[season] + " <<<");
+                player.sendChatToPlayer(new ChatMessageComponent().addText(
+                        ">>> Now is " + subseasonSuffix[subseason] + " " + seasonSuffix[season] + " <<<"));
             }
 
             // Set season and grass/foliage color...
@@ -93,6 +97,7 @@ public class SeasonsManager {
 
         // Always set temperature, because active area of player can offset by player's moving
         setBiomesTemperature();
+        sendTemperatureToClient();
     }
 
 
@@ -103,6 +108,22 @@ public class SeasonsManager {
             case SUMMER: return 0.5F;
             case AUTUMN: return 0.4F;
             default: return 0.5F;
+        }
+    }
+
+
+    void sendTemperatureToClient() {
+        ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+        DataOutputStream outputStream = new DataOutputStream(byteStream);
+
+        try {
+            outputStream.writeFloat(getTemperatureBySeason());
+            PacketDispatcher.sendPacketToAllPlayers(PacketDispatcher.getPacket("channel", (byte[]) byteStream.toByteArray()));
+            System.out.println("# send temp " + getTemperatureBySeason() + " to players");
+        }
+        catch (IOException ex) {
+            System.out.println("### error " + ex);
+            ex.printStackTrace();
         }
     }
 

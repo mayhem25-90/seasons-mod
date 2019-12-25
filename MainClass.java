@@ -5,12 +5,18 @@ import cpw.mods.fml.common.Mod.EventHandler;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.network.NetworkMod;
+import cpw.mods.fml.common.network.NetworkMod.SidedPacketHandler;
 import cpw.mods.fml.common.registry.TickRegistry;
 import cpw.mods.fml.relauncher.Side;
 import net.minecraftforge.common.MinecraftForge;
 
-@Mod(modid = MainClass.MODID, name = MainClass.MODNAME, version = MainClass.MODVERSION)
-@NetworkMod(clientSideRequired = true, serverSideRequired = false)
+@Mod (modid = MainClass.MODID, name = MainClass.MODNAME, version = MainClass.MODVERSION)
+
+@NetworkMod (clientSideRequired = true, serverSideRequired = true,
+    // For client side packet handling
+    clientPacketHandlerSpec = @SidedPacketHandler(channels = {"channel"}, packetHandler = ClientPacketHandler.class)
+)
+
 
 public class MainClass {
 
