@@ -22,22 +22,21 @@ import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 import net.minecraft.world.biome.BiomeGenBase;
 import net.minecraft.world.chunk.Chunk;
+import net.minecraftforge.common.DimensionManager;
 
 public class SeasonsManager {
 
-    private static final int CHUNK_SIZE = 16;
-    private static final int ACTIVE_RADIUS = 8;
+    // World
+    private static final int BIOMES = 23;
+    private static final int DAY_LENGTH = 24000; // in ticks
+    private static final int CHUNK_SIZE = CommonProvider.CHUNK_SIZE;
+    private static final int ACTIVE_RADIUS = CommonProvider.ACTIVE_RADIUS;
 
     // Block IDs
     private static final int AIR = 0;
     private static final int WATER = 8;
     private static final int SNOW_LAYER = 78;
     private static final int ICE = 79;
-
-    // Biomes
-    private static final int BIOMES = 23;
-    private static final int TAIGA = 5;
-    private static final int ICE_PLAINS = 12;
 
     // Seasons
     private static final int WINTER = 0;
@@ -60,14 +59,15 @@ public class SeasonsManager {
     WorldServer world;
 
 
-    public void setWorld(WorldServer world) {
-        this.world = world;
-    }
+    public void checkSeason() {
 
-
-    public void setSeason(final int dayNumber) {
+        // Get world
+        world = DimensionManager.getWorld(0);
 
         if (world == null) return;
+
+        // Get number of day
+        final int dayNumber = (int) (world.getWorldTime() / DAY_LENGTH);
 
         // Current config: 3 days = 1 season (1 day = 1 subseason)
         int month = dayNumber % (SEASONS * SUBSEASONS);
@@ -96,7 +96,9 @@ public class SeasonsManager {
         }
 
         // Always set temperature, because active area of player can offset by player's moving
-        setBiomesTemperature();
+        for (EntityPlayer player : (ArrayList<EntityPlayer>) world.playerEntities) {
+            CommonProvider.setBiomesTemperature(player, getTemperatureBySeason());
+        }
         sendTemperatureToClient();
     }
 
@@ -124,42 +126,6 @@ public class SeasonsManager {
         catch (IOException ex) {
             System.out.println("### error " + ex);
             ex.printStackTrace();
-        }
-    }
-
-
-    void setBiomesTemperature() {
-
-        // For each player in the world
-        for (EntityPlayer player : (ArrayList<EntityPlayer>) world.playerEntities) {
-
-            // Current coordinates of player
-            final int posX = MathHelper.floor_double(player.posX);
-            final int posZ = MathHelper.floor_double(player.posZ);
-
-            // Get active area
-            Chunk chunk = world.getChunkFromBlockCoords(posX, posZ);
-
-            final int beginAreaX = (chunk.xPosition - ACTIVE_RADIUS) * CHUNK_SIZE;
-            final int beginAreaZ = (chunk.zPosition - ACTIVE_RADIUS) * CHUNK_SIZE;
-            final int endAreaX = (chunk.xPosition + ACTIVE_RADIUS) * CHUNK_SIZE;
-            final int endAreaZ = (chunk.zPosition + ACTIVE_RADIUS) * CHUNK_SIZE;
-
-            // Iteration on X, Z with step 16 for set temperature in biomes
-            for (int x = beginAreaX; x < endAreaX; x += CHUNK_SIZE) {
-                for (int z = beginAreaZ; z < endAreaZ; z += CHUNK_SIZE) {
-
-                    // Get current biome and set temperature
-                    BiomeGenBase currentBiome = world.getBiomeGenForCoords(x, z);
-                    if ((currentBiome.biomeID != TAIGA) && (currentBiome.biomeID != ICE_PLAINS)) {
-                        currentBiome.setTemperatureRainfall(getTemperatureBySeason(), currentBiome.rainfall);
-                    }
-
-                }
-            }
-
-            System.out.println("# check t in player pos (" + posX + ", " + posZ + "): "
-                    + world.getBiomeGenForCoords(posX, posZ).temperature);
         }
     }
 
