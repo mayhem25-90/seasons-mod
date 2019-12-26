@@ -153,88 +153,87 @@ public class SeasonsManager {
     }
 
 
-    void meltingSnowBase() {
-        if (world == null) return;
+    // randomly melt ice and snow when it isn't winter
+    void meltingSnow() {
 
-        for (EntityPlayer pl : (ArrayList<EntityPlayer>) world.playerEntities) {
-            meltingSnow(pl);
+        if ((world == null) || (currentSeason == WINTER)) return;
+
+        for (EntityPlayer player : (ArrayList<EntityPlayer>) world.playerEntities) {
+
+            if (player == null) return;
+
+            // Frequency of random tried to melt snow
+            int trying = 1;
+            if (currentSeason == SPRING) {
+                if (currentSubseason == EARLY) trying = 8;
+                else if (currentSubseason == MID) trying = 4;
+                else if (currentSubseason == LATE) trying = 2;
+            }
+
+            // Try to random
+            if (world.rand.nextInt(trying) != 0) return;
+
+            // Current coordinates of player
+            final int posX = MathHelper.floor_double(player.posX);
+            final int posZ = MathHelper.floor_double(player.posZ);
+
+            // Get active area
+            Chunk chunk = world.getChunkFromBlockCoords(posX, posZ);
+
+            // Search chunks for melting snow in active player radius
+            final int beginAreaX = (chunk.xPosition - ACTIVE_RADIUS) * CHUNK_SIZE;
+            final int beginAreaZ = (chunk.zPosition - ACTIVE_RADIUS) * CHUNK_SIZE;
+            final int endAreaX = (chunk.xPosition + ACTIVE_RADIUS) * CHUNK_SIZE;
+            final int endAreaZ = (chunk.zPosition + ACTIVE_RADIUS) * CHUNK_SIZE;
+
+            // Iteration on X, Z with step a chunk
+            for (int x = beginAreaX; x < endAreaX; x += CHUNK_SIZE) {
+                for (int z = beginAreaZ; z < endAreaZ; z += CHUNK_SIZE) {
+
+                    // get random XZ-offset for melting in chunk
+                    int updateLCG = (new Random()).nextInt() * 3 + 1013904223;
+                    int randOffset = updateLCG >> 2;
+
+                    x += (randOffset & 15);
+                    z += (randOffset >> 8 & 15);
+
+                    // is the temperature good for melting snow?...
+                    if (isFreezeAt(x, z)) return;
+
+
+                    // going upside down each column
+                    for (int y = world.getPrecipitationHeight(x, z); y > 0; --y) {
+
+                        int block = world.getBlockId(x, y, z);
+
+                        if (block == AIR) continue;
+
+                        if (block == SNOW_LAYER) world.setBlockToAir(x, y, z);
+
+                        if (block == ICE) world.setBlock(x, y, z, WATER);
+
+                        break;
+                    }
+                }
+            }
         }
     }
 
 
-    // randomly melt ice and snow when it isn't winter
-    void meltingSnow(EntityPlayer player) {
-        if (player == null) return;
-
-//        if (world == null) return;
+    // Check is freeze at current point
+    boolean isFreezeAt(final int x, final int z) {
 
         String output = "melting snow?... ";
 
-        // Get world
-        World world = player.worldObj;
-
-        // frequency of random tried to melt snow
-        int trying = 1;
-        if(world.rand.nextInt(trying) != 0) return;
-
-        // current coordinates of player
-        final int posX = MathHelper.floor_double(player.posX);
-        final int posZ = MathHelper.floor_double(player.posZ);
-
-        BiomeGenBase currentBiome = world.getBiomeGenForCoords(posX, posZ);
+        BiomeGenBase currentBiome = world.getBiomeGenForCoords(x, z);
         output += "temp: " + currentBiome.getFloatTemperature();
         if (currentBiome.getFloatTemperature() < 0.15F) {
             System.out.println(output + " => return");
-            return;
+            return true;
         }
 
-        // TODO: this is a bug: we need to check temperature in each XZ
-        // the temperature is good, let's melt snow
         System.out.println(output + " the temperature is good, let's melt snow");
-        Chunk chunk = world.getChunkFromBlockCoords(posX, posZ);
 
-
-        // search chunks for melting snow in active player radius
-        final int beginAreaX = (chunk.xPosition - ACTIVE_RADIUS) * CHUNK_SIZE;
-        final int beginAreaZ = (chunk.zPosition - ACTIVE_RADIUS) * CHUNK_SIZE;
-        final int endAreaX = (chunk.xPosition + ACTIVE_RADIUS) * CHUNK_SIZE;
-        final int endAreaZ = (chunk.zPosition + ACTIVE_RADIUS) * CHUNK_SIZE;
-
-        for (int x = beginAreaX; x < endAreaX; x += CHUNK_SIZE) {
-            for (int z = beginAreaZ; z < endAreaZ; z += CHUNK_SIZE) {
-
-                // get random XZ-offset for melting in chunk
-                int updateLCG = (new Random()).nextInt() * 3 + 1013904223;
-                int randOffset = updateLCG >> 2;
-
-                x += (randOffset & 15);
-                z += (randOffset >> 8 & 15);
-
-//                System.out.println("magic x: " + x + ", z: " + z);
-
-                int precH = world.getPrecipitationHeight(x, z);
-//                System.out.println("precipitation height at: " + x + ", " + z + ": " + precH);
-
-                // going upside down each column
-                for (int y = precH; y > 0; --y) {
-                    int blockID = world.getBlockId(x, y, z);
-                    System.out.println("Block ID at (" + x + ", " + z + ") " + y + ": " + blockID);
-
-                    if (blockID == AIR)
-                        continue;
-
-                    if (blockID == SNOW_LAYER) {
-                        world.setBlockToAir(x, y, z);
-                    }
-
-                    if (blockID == ICE)
-                    {
-                        world.setBlock(x, y, z, WATER);
-                    }
-
-                    break;
-                }
-            }
-        }
+        return false;
     }
 }
