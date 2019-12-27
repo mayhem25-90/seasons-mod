@@ -53,6 +53,10 @@ public class SeasonsManager {
     private static final String[] seasonSuffix = {"winter", "spring", "summer", "autumn"};
     private static final String[] subseasonSuffix = {"early", "middle", "late"};
 
+    // Temperature at seasons
+    private static final float[] TEMPERATURE =
+            { 0.20F, 0.20F, 0.20F, 0.50F, 0.60F, 0.70F, 0.80F, 0.90F, 0.80F, 0.40F, 0.30F, 0.25F };
+
     int currentSeason = -1;
     int currentSubseason = -1;
 
@@ -99,29 +103,30 @@ public class SeasonsManager {
         for (EntityPlayer player : (ArrayList<EntityPlayer>) world.playerEntities) {
             CommonProvider.setBiomesTemperature(player, getTemperatureBySeason());
         }
-        sendTemperatureToClient();
+        sendTemperatureToClient(getTemperatureBySeason());
     }
 
 
     float getTemperatureBySeason() {
-        switch (currentSeason) {
-            case WINTER: return 0.2F;
-            case SPRING: return 0.8F;
-            case SUMMER: return 0.5F;
-            case AUTUMN: return 0.4F;
-            default: return 0.5F;
+
+        // Get current month
+        int month = (currentSeason * SUBSEASONS) + currentSubseason;
+
+        if ((month >= 0) && (month < SEASONS * SUBSEASONS)) {
+            return TEMPERATURE[month];
         }
+        else return 0.5F;
     }
 
 
-    void sendTemperatureToClient() {
+    void sendTemperatureToClient(float temperature) {
         ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
         DataOutputStream outputStream = new DataOutputStream(byteStream);
 
         try {
-            outputStream.writeFloat(getTemperatureBySeason());
+            outputStream.writeFloat(temperature);
             PacketDispatcher.sendPacketToAllPlayers(PacketDispatcher.getPacket("channel", (byte[]) byteStream.toByteArray()));
-            System.out.println("# send temp " + getTemperatureBySeason() + " to players");
+            System.out.println("# send temp " + temperature + " to players");
         }
         catch (IOException ex) {
             System.out.println("### error " + ex);
