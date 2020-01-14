@@ -1,6 +1,7 @@
 package myseasons;
 
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.util.ChatMessageComponent;
 import net.minecraft.util.MathHelper;
 import net.minecraft.world.biome.BiomeGenBase;
 import net.minecraft.world.chunk.Chunk;
@@ -17,8 +18,16 @@ public class CommonProvider {
     static final int ACTIVE_RADIUS = 8;
 
     // Biomes
+    private static final int OCEAN = 0;
+    private static final int PLAINS = 1;
+    private static final int HILLS = 3;
+    private static final int FOREST = 4;
     private static final int TAIGA = 5;
+    private static final int RIVER = 7;
     private static final int ICE_PLAINS = 12;
+    private static final int BEACH = 16;
+    private static final int FOREST_HILLS = 18;
+    private static final int HILLS_EDGE = 20;
 
 
     // Set temperature in active area around the player
@@ -42,7 +51,10 @@ public class CommonProvider {
 
                 // Get current biome and set temperature
                 BiomeGenBase currentBiome = player.worldObj.getBiomeGenForCoords(x, z);
-                if ((currentBiome.biomeID != TAIGA) && (currentBiome.biomeID != ICE_PLAINS)) {
+                if ((currentBiome.biomeID == OCEAN) || (currentBiome.biomeID == PLAINS)
+                        || (currentBiome.biomeID == HILLS) || (currentBiome.biomeID == FOREST)
+                        || (currentBiome.biomeID == RIVER) || (currentBiome.biomeID == BEACH)
+                        || (currentBiome.biomeID == FOREST_HILLS) || (currentBiome.biomeID == HILLS_EDGE)) {
                     currentBiome.setTemperatureRainfall(temperature, currentBiome.rainfall);
                 }
 
